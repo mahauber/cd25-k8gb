@@ -1,0 +1,130 @@
+apiVersion: placement.kubernetes-fleet.io/v1
+kind: ClusterResourcePlacement
+metadata:
+  name: managed
+spec:
+  resourceSelectors:
+    - group: ""
+      kind: Namespace
+      version: v1
+      name: managed
+    # cluster scoped resources need to be selected explicitly, wrapping in envelope objects is also possible https://learn.microsoft.com/en-us/azure/kubernetes-fleet/quickstart-envelope-reserved-resources
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: helmreleases.helm.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: helmcharts.source.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: imageupdateautomations.image.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: providers.notification.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: imagepolicies.image.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: imagerepositories.image.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: kustomizations.kustomize.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: buckets.source.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: receivers.notification.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: gitrepositories.source.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: helmrepositories.source.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: ocirepositories.source.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: alerts.notification.toolkit.fluxcd.io
+
+    - group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: notification.toolkit.fluxcd.io
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: flux-edit
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: cluster-reconciler
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: cluster-reconciler-impersonator
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: cluster-reconciler-impersonator
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: crd-controller
+
+    - group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: crd-controller
+
+  policy:
+    placementType: PickAll
+
+# examples
+# apiVersion: placement.kubernetes-fleet.io/v1
+# kind: ClusterResourcePlacement
+# metadata:
+#   name: crp-fixed
+# spec:
+#   policy:
+#     placementType: PickFixed
+#     clusterNames:
+#     - cluster1
+#     - cluster2
+#   resourceSelectors:
+#     - group: ""
+#       kind: Namespace
+#       name: test-deployment
+#       version: v1
