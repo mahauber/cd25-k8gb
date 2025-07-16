@@ -22,10 +22,6 @@ helm repo add podinfo https://stefanprodan.github.io/podinfo
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 
-# get all cluster locations
-ALL_CLUSTER_LOCATIONS=$(az aks list --query "[].location" -o tsv | paste -sd,)
-ESCAPED_ALL_CLUSTER_LOCATIONS="${ALL_CLUSTER_LOCATIONS//,/\\,}" # escape commas for Helm values
-
 for CLUSTER_NAME in "${CLUSTERS[@]}"; do
   echo "#################################"
   echo "## Setting up cluster: $CLUSTER_NAME ##"
@@ -33,7 +29,12 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
 
   # Get credentials for the AKS cluster
   az aks get-credentials --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --subscription $SUBSCRIPTION_ID --overwrite-existing
+  
   CURRENT_CLUSTER_LOCATION=$(az aks show --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --query location -o tsv)
+
+  CLEAN_ALL_CLUSTER_LOCATIONS=$(comm -23 <(az aks list --query "[].location" -o tsv | sort) <(echo $CURRENT_CLUSTER_LOCATION | sort))
+  CLEAN_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS=$(echo $CLEAN_ALL_CLUSTER_LOCATIONS | paste -sd,)
+  CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS="${CLEAN_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS//,/\\,}" # escape commas for Helm values
 
   # Install NGINX Ingress Controller
   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
@@ -70,7 +71,7 @@ helm upgrade --install k8gb k8gb/k8gb \
   --create-namespace \
   --version 0.15.0-rc3 \
   --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
-  --set "k8gb.extGslbClustersGeoTags=$ESCAPED_ALL_CLUSTER_LOCATIONS" \
+  --set "k8gb.extGslbClustersGeoTags=$CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS" \
   --set "k8gb.dnsZones[0].loadBalancedZone=$DNS_ZONE_NAME" \
   --set "k8gb.dnsZones[0].parentZone=$LOAD_BALANCED_ZONE" \
   -f ./helm-values/k8gb/values.yaml
