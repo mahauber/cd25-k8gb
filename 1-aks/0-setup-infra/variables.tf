@@ -32,3 +32,13 @@ variable "fleetmanager_enabled" {
   type        = bool
   default     = false
 }
+
+variable "dns_zone_name" {
+  description = "The name of the DNS zone to create for the AKS clusters"
+  type        = string
+}
+
+variable "loadbalanced_dns_zone_name" {
+  description = "The name of the DNS zone for load balancing"
+  type        = string
+}

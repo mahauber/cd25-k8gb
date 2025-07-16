@@ -1,3 +1,18 @@
+#####################
+## RESOURCE GROUPS ##
+#####################
+
+resource "azurerm_resource_group" "main" {
+  for_each = { for cluster in var.clusters : cluster.name => cluster }
+
+  name     = "rg-${each.key}"
+  location = each.value.location
+}
+
+#########################
+## KUBERNETES CLUSTERS ##
+#########################
+
 resource "azurerm_kubernetes_cluster" "main" {
   for_each = { for cluster in var.clusters : cluster.name => cluster }
 
@@ -5,7 +20,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   location                          = each.value.location
   resource_group_name               = azurerm_resource_group.main[each.key].name
   kubernetes_version                = var.kubernetes_version
-  node_resource_group               = "rg-${each.value.name}-aks-nodes" # optional
+  node_resource_group               = "rg-${each.value.name}-managed" # optional
   sku_tier                          = "Free"                            # optional
   dns_prefix                        = "kubernetes"
   role_based_access_control_enabled = true # optional
@@ -20,6 +35,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     type                         = "VirtualMachineScaleSets" # optional
     auto_scaling_enabled         = false                     # optional
     only_critical_addons_enabled = false                     # optional, this should be set to true to separate system and user node pools
+    temporary_name_for_rotation  = "temporary"               # optional
     upgrade_settings {
       max_surge = "10%" # optional, but due to bug in the provider it should be specified
     }
@@ -49,16 +65,17 @@ resource "azurerm_kubernetes_cluster" "main" {
 resource "azurerm_kubernetes_cluster_node_pool" "user" {
   for_each = { for cluster in var.clusters : cluster.name => cluster }
 
-  name                  = "application"
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.main[each.key].id
-  vm_size               = "Standard_B2ms"
-  node_count            = 1
-  auto_scaling_enabled  = true                   # optional
-  min_count             = 1                      # optional
-  max_count             = 2                      # optional
-  mode                  = "User"                 # optional
-  orchestrator_version  = var.kubernetes_version # optional, 1.28.3 is latest (-> space for upgrade to 1.28.3)
-  os_disk_type          = "Managed"              # optional
+  name                        = "application"
+  kubernetes_cluster_id       = azurerm_kubernetes_cluster.main[each.key].id
+  vm_size                     = "Standard_B2ms"
+  node_count                  = 1
+  auto_scaling_enabled        = true                   # optional
+  min_count                   = 1                      # optional
+  max_count                   = 2                      # optional
+  mode                        = "User"                 # optional
+  orchestrator_version        = var.kubernetes_version # optional, 1.28.3 is latest (-> space for upgrade to 1.28.3)
+  os_disk_type                = "Managed"              # optional
+  temporary_name_for_rotation = "temporary"            # optional
 }
 
 # assign cluster admin role to the current user

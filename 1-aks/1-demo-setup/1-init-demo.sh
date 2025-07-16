@@ -2,45 +2,83 @@
 
 set -euo pipefail
 
+# Check if az CLI is installed
+if ! command -v az &> /dev/null; then
+  echo "Azure CLI (az) not found. Please install it before running this script."
+  exit 1
+fi
+
 # Set variables
-RESOURCE_GROUP="rg-aks-gwc"
 CLUSTERS=("aks-gwc" "aks-sdc")
-NAMESPACE="managed"
+SUBSCRIPTION_ID="88155474-d55e-4910-9a6f-9ea5ccc6d281"
+TENANT_ID="$(az account show --query tenantId -o tsv)"
+DNS_ZONE_RESOURCE_GROUP="rg-dns"
+DNS_ZONE_NAME="cd25.k8st.cc"
+LOAD_BALANCED_ZONE="demo.cd25.k8st.cc"
+
+# Add and update Helm repositories (only once)
+helm repo add k8gb https://www.k8gb.io
+helm repo add podinfo https://stefanprodan.github.io/podinfo
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+# get all cluster locations
+ALL_CLUSTER_LOCATIONS=$(az aks list --query "[].location" -o tsv | paste -sd,)
 
 for CLUSTER_NAME in "${CLUSTERS[@]}"; do
-  echo "Setting up cluster: $CLUSTER_NAME"
+  echo "#################################"
+  echo "## Setting up cluster: $CLUSTER_NAME ##"
+  echo "#################################"
 
   # Get credentials for the AKS cluster
-  az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
-
-  # Create the managed namespace if it doesn't exist
-  kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
-
-  # Add and update Helm repositories (only once)
-  if [[ "$CLUSTER_NAME" == "${CLUSTERS[0]}" ]]; then
-    helm repo add k8gb https://www.k8gb.io || true
-    helm repo add podinfo https://stefanprodan.github.io/podinfo || true
-    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-    helm repo update
-  fi
+  az aks get-credentials --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME -s $SUBSCRIPTION_ID --overwrite-existing
+  CURRENT_CLUSTER_LOCATION=$(az aks show --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --query location -o tsv)
 
   # Install NGINX Ingress Controller
   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-    --namespace $NAMESPACE \
     --version 4.13.0 \
-    -f nginxingress-helmchart.yaml
+    --create-namespace \
+    --namespace ingress-nginx \
+    -f ./helm-values/ingress-nginx/values.yaml
 
-  # Install k8gb
+  # SETUP K8GB
+
+  # create secret for reference to managed identity https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
+kubectl apply --dry-run=client -o yaml -f - <<END
+apiVersion: v1
+kind: Secret
+metadata:
+  name: external-dns-secret-azure
+type: Opaque
+data:
+  azure.json: $(cat <<EOF | base64 | tr -d '\n'
+{
+  "tenantId": "$TENANT_ID",
+  "subscriptionId": "$SUBSCRIPTION_ID",
+  "resourceGroup": "$DNS_ZONE_RESOURCE_GROUP",
+  "useManagedIdentityExtension": true
+}
+EOF
+)
+END
+  
   helm upgrade --install k8gb k8gb/k8gb \
-    --namespace $NAMESPACE \
+    --namespace k8gb \
+    --create-namespace \
     --version 0.14.0 \
-    -f k8gb-helmchart.yaml
+    --set k8gb.clusterGeoTag="$CURRENT_CLUSTER_LOCATION" \
+    --set k8gb.extGslbClustersGeoTags="$ALL_CLUSTER_LOCATIONS" \
+    --set k8gb.dnsZones[0].loadBalancedZone="$DNS_ZONE_NAME" \
+    --set k8gb.dnsZones[0].parentZone="$LOAD_BALANCED_ZONE" \
+    -f ./helm-values/k8gb/values.yaml
 
   # Install podinfo
   helm upgrade --install podinfo podinfo/podinfo \
-    --namespace $NAMESPACE \
+    --namespace default \
     --version 6.9.1 \
-    -f podinfo-helmchart.yaml
+    --set ui.message="$CLUSTER_NAME" \
+    --set ui.color="#fab41e" \
+    --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION"
 
-  echo "k8gb demo setup complete on cluster $CLUSTER_NAME in namespace $NAMESPACE."
+  echo "k8gb demo setup complete on cluster $CLUSTER_NAME."
 done
