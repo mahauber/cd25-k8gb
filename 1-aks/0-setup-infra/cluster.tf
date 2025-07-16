@@ -76,6 +76,9 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   orchestrator_version        = var.kubernetes_version # optional, 1.28.3 is latest (-> space for upgrade to 1.28.3)
   os_disk_type                = "Managed"              # optional
   temporary_name_for_rotation = "temporary"            # optional
+  upgrade_settings {
+    max_surge = "10%" # optional, but due to bug in the provider it should be specified
+  }
 }
 
 # assign cluster admin role to the current user

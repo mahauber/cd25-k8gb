@@ -24,6 +24,7 @@ helm repo update
 
 # get all cluster locations
 ALL_CLUSTER_LOCATIONS=$(az aks list --query "[].location" -o tsv | paste -sd,)
+ESCAPED_ALL_CLUSTER_LOCATIONS="${ALL_CLUSTER_LOCATIONS//,/\\,}" # escape commas for Helm values
 
 for CLUSTER_NAME in "${CLUSTERS[@]}"; do
   echo "#################################"
@@ -31,7 +32,7 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
   echo "#################################"
 
   # Get credentials for the AKS cluster
-  az aks get-credentials --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME -s $SUBSCRIPTION_ID --overwrite-existing
+  az aks get-credentials --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --subscription $SUBSCRIPTION_ID --overwrite-existing
   CURRENT_CLUSTER_LOCATION=$(az aks show --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --query location -o tsv)
 
   # Install NGINX Ingress Controller
@@ -44,7 +45,7 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
   # SETUP K8GB
 
   # create secret for reference to managed identity https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
-kubectl apply --dry-run=client -o yaml -f - <<END
+kubectl apply -f - <<END
 apiVersion: v1
 kind: Secret
 metadata:
@@ -62,15 +63,17 @@ EOF
 )
 END
   
-  helm upgrade --install k8gb k8gb/k8gb \
-    --namespace k8gb \
-    --create-namespace \
-    --version 0.14.0 \
-    --set k8gb.clusterGeoTag="$CURRENT_CLUSTER_LOCATION" \
-    --set k8gb.extGslbClustersGeoTags="$ALL_CLUSTER_LOCATIONS" \
-    --set k8gb.dnsZones[0].loadBalancedZone="$DNS_ZONE_NAME" \
-    --set k8gb.dnsZones[0].parentZone="$LOAD_BALANCED_ZONE" \
-    -f ./helm-values/k8gb/values.yaml
+  env
+
+helm upgrade --install k8gb k8gb/k8gb \
+  --namespace k8gb \
+  --create-namespace \
+  --version 0.15.0-rc3 \
+  --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
+  --set "k8gb.extGslbClustersGeoTags=$ESCAPED_ALL_CLUSTER_LOCATIONS" \
+  --set "k8gb.dnsZones[0].loadBalancedZone=$DNS_ZONE_NAME" \
+  --set "k8gb.dnsZones[0].parentZone=$LOAD_BALANCED_ZONE" \
+  -f ./helm-values/k8gb/values.yaml
 
   # Install podinfo
   helm upgrade --install podinfo podinfo/podinfo \
