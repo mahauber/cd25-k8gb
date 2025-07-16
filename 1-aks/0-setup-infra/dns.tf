@@ -19,7 +19,7 @@ resource "azurerm_dns_ns_record" "child" {
   zone_name           = azurerm_dns_zone.root.name
   resource_group_name = azurerm_resource_group.dns.name
   ttl                 = 300
-  records = azurerm_dns_zone.child.name_servers
+  records             = azurerm_dns_zone.child.name_servers
 }
 
 # assign DNS Zone Contributor role to the AKS cluster's kubelet identity

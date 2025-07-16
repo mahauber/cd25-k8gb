@@ -38,7 +38,7 @@ variable "dns_zone_name" {
   type        = string
 }
 
-variable "loadbalanced_dns_zone_name" {
+variable "loadbalanced_dns_zone_prefix" {
   description = "The name of the DNS zone for load balancing"
   type        = string
 }

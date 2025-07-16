@@ -21,7 +21,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   resource_group_name               = azurerm_resource_group.main[each.key].name
   kubernetes_version                = var.kubernetes_version
   node_resource_group               = "rg-${each.value.name}-managed" # optional
-  sku_tier                          = "Free"                            # optional
+  sku_tier                          = "Free"                          # optional
   dns_prefix                        = "kubernetes"
   role_based_access_control_enabled = true # optional
   local_account_disabled            = true # optional
