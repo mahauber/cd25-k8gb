@@ -26,3 +26,9 @@ variable "clusters" {
     }
   ]
 }
+
+variable "fleetmanager_enabled" {
+  description = "Whether to create the AKS fleet manager"
+  type        = bool
+  default     = false
+}
