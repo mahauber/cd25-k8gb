@@ -2,9 +2,18 @@
 
 set -euo pipefail
 
-# Check if az CLI is installed
 if ! command -v az &> /dev/null; then
   echo "Azure CLI (az) not found. Please install it before running this script."
+  exit 1
+fi
+
+if ! command -v helm &> /dev/null; then
+  echo "Helm not found. Please install it before running this script."
+  exit 1
+fi
+
+if ! command -v kubectl &> /dev/null; then
+  echo "kubectl not found. Please install it before running this script."
   exit 1
 fi
 
@@ -43,14 +52,13 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
     --namespace ingress-nginx \
     -f ./helm-values/ingress-nginx/values.yaml
 
-  # SETUP K8GB
-
-  # create secret for reference to managed identity https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
-kubectl apply -f - <<END
+  # create secret for reference to managed identity to access public dns zone https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
+  kubectl apply -f - <<END
 apiVersion: v1
 kind: Secret
 metadata:
   name: external-dns-secret-azure
+  namespace: k8gb
 type: Opaque
 data:
   azure.json: $(cat <<EOF | base64 | tr -d '\n'
@@ -63,26 +71,26 @@ data:
 EOF
 )
 END
-  
-  env
-
-helm upgrade --install k8gb k8gb/k8gb \
-  --namespace k8gb \
-  --create-namespace \
-  --version 0.15.0-rc3 \
-  --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
-  --set "k8gb.extGslbClustersGeoTags=$CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS" \
-  --set "k8gb.dnsZones[0].loadBalancedZone=$DNS_ZONE_NAME" \
-  --set "k8gb.dnsZones[0].parentZone=$LOAD_BALANCED_ZONE" \
-  -f ./helm-values/k8gb/values.yaml
 
   # Install podinfo
   helm upgrade --install podinfo podinfo/podinfo \
     --namespace default \
     --version 6.9.1 \
     --set ui.message="$CLUSTER_NAME" \
-    --set ui.color="#fab41e" \
-    --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION"
+    --set ingress.hosts[0].host="podinfo.$LOAD_BALANCED_ZONE" \
+    --set-string "ingress.annotations.k8gb\.io/primary-geotag=$CURRENT_CLUSTER_LOCATION" \
+    --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION" \
+    -f ./helm-values/podinfo/values.yaml
+
+  helm upgrade --install k8gb k8gb/k8gb \
+    --namespace k8gb \
+    --create-namespace \
+    --version 0.15.0-rc3 \
+    --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
+    --set "k8gb.extGslbClustersGeoTags=$CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS" \
+    --set "k8gb.dnsZones[0].loadBalancedZone=$LOAD_BALANCED_ZONE" \
+    --set "k8gb.dnsZones[0].parentZone=$DNS_ZONE_NAME" \
+    -f ./helm-values/k8gb/values.yaml
 
   echo "k8gb demo setup complete on cluster $CLUSTER_NAME."
 done

@@ -6,8 +6,11 @@ k8gb:
     - "8.8.8.8"
   reconcileRequeueSeconds: 10
 
+# https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/azure.md
 externaldns:
   interval: "10s"
 
 azuredns:
   enabled: true
+  createAuthSecret:
+    enabled: false

@@ -9,8 +9,17 @@ resource "azurerm_dns_zone" "root" {
 }
 
 resource "azurerm_dns_zone" "child" {
-  name                = var.loadbalanced_dns_zone_name
+  name                = "${var.loadbalanced_dns_zone_prefix}.${var.dns_zone_name}"
   resource_group_name = azurerm_resource_group.dns.name
+}
+
+# delegate subdomain to child DNS zone (NS record)
+resource "azurerm_dns_ns_record" "child" {
+  name                = var.loadbalanced_dns_zone_prefix
+  zone_name           = azurerm_dns_zone.root.name
+  resource_group_name = azurerm_resource_group.dns.name
+  ttl                 = 300
+  records = azurerm_dns_zone.child.name_servers
 }
 
 # assign DNS Zone Contributor role to the AKS cluster's kubelet identity

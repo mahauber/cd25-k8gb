@@ -1,0 +1,6 @@
+controller:
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+udp:
+  53: "k8gb/k8gb-coredns:53"
