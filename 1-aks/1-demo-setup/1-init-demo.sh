@@ -24,6 +24,7 @@ TENANT_ID="$(az account show --query tenantId -o tsv)"
 DNS_ZONE_RESOURCE_GROUP="rg-dns"
 DNS_ZONE_NAME="cd25.k8st.cc"
 LOAD_BALANCED_ZONE="demo.cd25.k8st.cc"
+PRIMARY_GEO_TAG="germanywestcentral"
 
 # Add and update Helm repositories (only once)
 helm repo add k8gb https://www.k8gb.io
@@ -88,21 +89,80 @@ END
     --version 6.9.1 \
     --set ui.message="$CLUSTER_NAME" \
     --set ingress.hosts[0].host="podinfo.$LOAD_BALANCED_ZONE" \
-    --set-string "ingress.annotations.k8gb\.io/primary-geotag=$CURRENT_CLUSTER_LOCATION" \
+    --set-string "ingress.annotations.k8gb\.io/primary-geotag=$PRIMARY_GEO_TAG" \
     --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION" \
     -f ./helm-values/podinfo/values.yaml
 
   helm upgrade --install k8gb k8gb/k8gb \
     --namespace k8gb \
     --create-namespace \
-    --version 0.15.0-rc3 \
+    --version 0.14.0 \
     --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
     --set "k8gb.extGslbClustersGeoTags=$CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS" \
-    --set "k8gb.dnsZones[0].loadBalancedZone=$LOAD_BALANCED_ZONE" \
-    --set "k8gb.dnsZones[0].parentZone=$DNS_ZONE_NAME" \
+    --set "k8gb.dnsZone=$LOAD_BALANCED_ZONE" \
+    --set "k8gb.edgeDNSZone=$DNS_ZONE_NAME" \
     -f ./helm-values/k8gb/values.yaml
 
-  # kubectl apply -f ./manifests/gslb-failover.yaml -> not needed due to annotations in podinfo ingress
+    kubectl apply -f - <<END
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: defaul-page
+spec:
+  ingressClassName: nginx
+  defaultBackend:
+    service:
+      name: maintenance
+      port:
+        number: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: maintenance
+  name: maintenance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maintenance
+  template:
+    metadata:
+      labels:
+        app: maintenance
+    spec:
+      containers:
+        - image: wickerlabs/maintenance
+          name: maintenance
+          ports:
+            - containerPort: 8080
+          resources: {}
+          env:
+            - name: MESSAGE
+              value: "DNS ZONE: $LOAD_BALANCED_ZONE"
+            - name: TITLE
+              value: "$CLUSTER_NAME - k8gb demo setup"
+            - name: HEADLINE
+              value: "$CURRENT_CLUSTER_LOCATION"
+            - name: TEAM_NAME
+              value: "This is the default page for the demo setup."
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: maintenance
+  name: maintenance
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: maintenance
+  type: ClusterIP
+END
 
   echo "k8gb demo setup complete on cluster $CLUSTER_NAME."
 done
