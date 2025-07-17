@@ -52,6 +52,16 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
     --namespace ingress-nginx \
     -f ./helm-values/ingress-nginx/values.yaml
 
+    kubectl apply -f - <<END
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: k8gb
+  name: k8gb
+spec:
+END
+
   # create secret for reference to managed identity to access public dns zone https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
   kubectl apply -f - <<END
 apiVersion: v1
@@ -91,6 +101,8 @@ END
     --set "k8gb.dnsZones[0].loadBalancedZone=$LOAD_BALANCED_ZONE" \
     --set "k8gb.dnsZones[0].parentZone=$DNS_ZONE_NAME" \
     -f ./helm-values/k8gb/values.yaml
+
+  # kubectl apply -f ./manifests/gslb-failover.yaml -> not needed due to annotations in podinfo ingress
 
   echo "k8gb demo setup complete on cluster $CLUSTER_NAME."
 done
