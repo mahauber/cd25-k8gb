@@ -140,13 +140,13 @@ spec:
           resources: {}
           env:
             - name: MESSAGE
-              value: "DNS ZONE: $LOAD_BALANCED_ZONE"
+              value: "This is the default page for the demo setup."
             - name: TITLE
               value: "$CLUSTER_NAME - k8gb demo setup"
             - name: HEADLINE
               value: "$CURRENT_CLUSTER_LOCATION"
             - name: TEAM_NAME
-              value: "This is the default page for the demo setup."
+              value: ""
 ---
 apiVersion: v1
 kind: Service
