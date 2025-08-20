@@ -16,14 +16,3 @@ resource "azurerm_role_assignment" "dns_zone_contributor_child" {
   role_definition_name = "DNS Zone Contributor"
   scope                = azurerm_dns_zone.root.id
 }
-
-resource "cloudflare_dns_record" "k8st_cc" {
-  for_each = { for ns_record in azurerm_dns_zone.root.name_servers : ns_record => ns_record }
-
-  zone_id = var.cloudflare_zone_id
-  name = "cd25"
-  ttl = 3600
-  type = "NS"
-  content = each.value
-  proxied = false
-}

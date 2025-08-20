@@ -31,13 +31,3 @@ variable "dns_zone_name" {
   description = "The name of the DNS zone to create for the AKS clusters"
   type        = string
 }
-
-variable "cloudflare_api_token" {
-  description = "The API token for Cloudflare"
-  type        = string
-}
-
-variable "cloudflare_zone_id" {
-  description = "The zone ID for Cloudflare"
-  type        = string
-}

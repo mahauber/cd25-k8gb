@@ -15,7 +15,8 @@ init-demo-aks-tf:
 
 init-demo-aks-helm:
 	@echo "➡️   Setting up Helm for AKS"
-	$(SCRIPT_DIR)set-up-helm.sh
+	$(SCRIPT_DIR)scripts/set-up-helm-charts.sh
+	@echo "✅   Finished Helm setup. Access the application at: http://podinfo.demo.cd25.k8st.cc"
 
 destroy-demo-aks:
 	@echo "➡️   Destroying Azure AKS & DNS"
