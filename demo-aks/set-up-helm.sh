@@ -39,7 +39,8 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
 
   # Get credentials for the AKS cluster
   az aks get-credentials --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --subscription $SUBSCRIPTION_ID --overwrite-existing
-  
+  kubelogin convert-kubeconfig -l azurecli
+
   CURRENT_CLUSTER_LOCATION=$(az aks show --resource-group rg-$CLUSTER_NAME --name $CLUSTER_NAME --query location -o tsv)
 
   CLEAN_ALL_CLUSTER_LOCATIONS=$(comm -23 <(az aks list --query "[].location" -o tsv | sort) <(echo $CURRENT_CLUSTER_LOCATION | sort))

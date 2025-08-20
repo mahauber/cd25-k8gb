@@ -27,18 +27,12 @@ variable "clusters" {
   ]
 }
 
-variable "fleetmanager_enabled" {
-  description = "Whether to create the AKS fleet manager"
-  type        = bool
-  default     = false
-}
-
 variable "dns_zone_name" {
   description = "The name of the DNS zone to create for the AKS clusters"
   type        = string
 }
 
-variable "loadbalanced_dns_zone_prefix" {
-  description = "The name of the DNS zone for load balancing"
+variable "cloudflare_api_token" {
+  description = "The API token for Cloudflare"
   type        = string
 }

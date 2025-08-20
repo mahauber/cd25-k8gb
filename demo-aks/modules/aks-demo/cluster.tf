@@ -62,24 +62,24 @@ resource "azurerm_kubernetes_cluster" "main" {
 }
 
 # second cluster node pool
-resource "azurerm_kubernetes_cluster_node_pool" "user" {
-  for_each = { for cluster in var.clusters : cluster.name => cluster }
+# resource "azurerm_kubernetes_cluster_node_pool" "user" {
+#   for_each = { for cluster in var.clusters : cluster.name => cluster }
 
-  name                        = "application"
-  kubernetes_cluster_id       = azurerm_kubernetes_cluster.main[each.key].id
-  vm_size                     = "Standard_B2ms"
-  node_count                  = 1
-  auto_scaling_enabled        = true                   # optional
-  min_count                   = 1                      # optional
-  max_count                   = 2                      # optional
-  mode                        = "User"                 # optional
-  orchestrator_version        = var.kubernetes_version # optional, 1.28.3 is latest (-> space for upgrade to 1.28.3)
-  os_disk_type                = "Managed"              # optional
-  temporary_name_for_rotation = "temporary"            # optional
-  upgrade_settings {
-    max_surge = "10%" # optional, but due to bug in the provider it should be specified
-  }
-}
+#   name                        = "application"
+#   kubernetes_cluster_id       = azurerm_kubernetes_cluster.main[each.key].id
+#   vm_size                     = "Standard_B2ms"
+#   node_count                  = 1
+#   auto_scaling_enabled        = true                   # optional
+#   min_count                   = 1                      # optional
+#   max_count                   = 2                      # optional
+#   mode                        = "User"                 # optional
+#   orchestrator_version        = var.kubernetes_version # optional, 1.28.3 is latest (-> space for upgrade to 1.28.3)
+#   os_disk_type                = "Managed"              # optional
+#   temporary_name_for_rotation = "temporary"            # optional
+#   upgrade_settings {
+#     max_surge = "10%" # optional, but due to bug in the provider it should be specified
+#   }
+# }
 
 # assign cluster admin role to the current user
 resource "azurerm_role_assignment" "aks_cluster_admin_to_user" {

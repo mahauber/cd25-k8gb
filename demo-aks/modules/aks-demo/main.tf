@@ -9,12 +9,20 @@ terraform {
       source  = "Azure/azapi"
       version = "2.5.0"
     }
+    cloudflare = {
+      source = "cloudflare/cloudflare"
+      version = "5.8.4"
+    }
   }
 }
 
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 provider "azapi" {
