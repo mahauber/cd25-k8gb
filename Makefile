@@ -18,9 +18,18 @@ SUBSCRIPTION_ID := 88155474-d55e-4910-9a6f-9ea5ccc6d281
 # Help target to display available commands
 help:
 	@echo -e "${BLUE}Available Targets:${RESET}"
+	@echo -e "  ${GREEN}initial-setup${RESET} - Set up the demo environment"
+	@echo -e "  ${GREEN}start${RESET}   - Start both AKS clusters"
+	@echo -e "  ${GREEN}k9s${RESET}     - Start k9s in Windows Terminal"
 	@echo -e "  ${GREEN}demo1${RESET}   - Kubernetes service scaling demonstration"
 	@echo -e "  ${GREEN}demo2${RESET}   - Additional Kubernetes demo (customize as needed)"
+	@echo -e "  ${GREEN}stop${RESET}    - Stop both AKS clusters"
+	@echo -e "  ${GREEN}destroy-demo${RESET} - Destroy the demo environment"
 	@echo -e "  ${GREEN}help${RESET}    - Show this help message"
+
+initial-setup:
+	@echo -e "${BLUE}Running initial setup...${RESET}"
+	@make -C ${SCRIPT_DIR}demo-setup init-demo-aks
 
 start:
 	@echo -e "${BLUE}Starting clusters...${RESET}"
@@ -50,7 +59,7 @@ demo1:
 	
 	@echo -e "${GREEN}✅ Demo 1 completed successfully${RESET}"
 
-# Demo 2 Primary AKS shutdown ==> takes way longer (~2min) to failover
+# Demo 2: Traffic manager weighted
 demo2:
 	@echo -e "${YELLOW}➡️   Demo 2: Primary AKS shutdown${RESET}"
 	@echo -e "${BLUE}Shutting down primary AKS...${RESET}"
@@ -62,10 +71,26 @@ demo2:
 
 	@echo -e "${GREEN}✅ Demo 2 completed successfully${RESET}"
 
+# Demo 3: Primary AKS shutdown ==> takes way longer (~2min) to failover
+demo3:
+	@echo -e "${YELLOW}➡️   Demo 3: Primary AKS shutdown${RESET}"
+	@echo -e "${BLUE}Shutting down primary AKS...${RESET}"
+	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short podinfo.demo.cd25.k8st.cc && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://podinfo.demo.cd25.k8st.cc | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+
+	@echo -e "${YELLOW}Starting primary AKS again...${RESET}"
+	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+
+	@echo -e "${GREEN}✅ Demo 3 completed successfully${RESET}"
+
 stop:
 	@echo -e "${BLUE}Stopping clusters...${RESET}"
 	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
 	@az aks stop --name ${SECONDARY_AKS_NAME} --resource-group ${SECONDARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+
+destroy-demo:
+	@echo -e "${BLUE}Destroying demo environment...${RESET}"
+	@make -C ${SCRIPT_DIR}demo-setup destroy-demo-aks
 
 # Default target
 default: help

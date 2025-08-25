@@ -12,13 +12,13 @@ resource "azurerm_resource_group" "traffic-manager" {
 }
 
 resource "azurerm_traffic_manager_profile" "traffic-manager" {
-  name                   = random_id.server.hex
+  name                   = "traf-podinfo-demo-cd25"
   resource_group_name    = azurerm_resource_group.traffic-manager.name
   traffic_routing_method = "Weighted" # Geographic # Performance # Priority
   traffic_view_enabled   = true
 
   dns_config {
-    relative_name = random_id.server.hex
+    relative_name = "traf-podinfo-demo-cd25"
     ttl           = 100
   }
 
@@ -26,8 +26,18 @@ resource "azurerm_traffic_manager_profile" "traffic-manager" {
     protocol                     = "HTTP"
     port                         = 80
     path                         = "/"
-    interval_in_seconds          = 30
-    timeout_in_seconds           = 9
-    tolerated_number_of_failures = 3
+    interval_in_seconds          = 10
+    timeout_in_seconds           = 5
+    tolerated_number_of_failures = 2
   }
+}
+
+resource "azurerm_traffic_manager_external_endpoint" "aks" {
+  for_each = { for cluster in var.clusters : cluster.name => cluster }
+
+  name       = "traf-${each.value.name}"
+  profile_id = azurerm_traffic_manager_profile.vpn_traffic_manager.id
+  target     = "${each.value.name}.traf.k8st.cc"
+  priority   = 1
+  weight     = 1
 }
