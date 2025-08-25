@@ -64,3 +64,15 @@ curl -s https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_recor
           \"content\": \"$SDC_IP\",
           \"proxied\": false
         }" | jq '.'
+
+echo "Creating A record for traf-podinfo-demo-cd25.trafficmanager.net..."
+curl -s https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $CLOUDFLARE_API_KEY" \
+    -d "{
+          \"name\": \"traf\",
+          \"ttl\": 3600,
+          \"type\": \"CNAME\",
+          \"content\": \"traf-podinfo-demo-cd25.trafficmanager.net\",
+          \"proxied\": false
+        }" | jq '.'

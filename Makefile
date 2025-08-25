@@ -61,15 +61,24 @@ demo1:
 
 # Demo 2: Traffic manager weighted
 demo2:
-	@echo -e "${YELLOW}➡️   Demo 2: Primary AKS shutdown${RESET}"
-	@echo -e "${BLUE}Shutting down primary AKS...${RESET}"
-	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short podinfo.demo.cd25.k8st.cc && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://podinfo.demo.cd25.k8st.cc | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	@echo -e "${YELLOW}➡️   Demo 2: Traffic manager weighted${RESET}"
+	@echo -e "${BLUE}Monitoring Traffic Manager endpoint with weighted routing${RESET}"
+	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short traf-podinfo-demo-cd25.trafficmanager.net && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://traf-podinfo-demo-cd25.trafficmanager.net | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	
+	@echo -e "${YELLOW}Stopping primary AKS cluster to demonstrate failover...${RESET}"
 	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
-
-	@echo -e "${YELLOW}Starting primary AKS again...${RESET}"
+	
+	@echo -e "${BLUE}Traffic should now be routed to secondary cluster...${RESET}"
+	@sleep 30
+	
+	@echo -e "${YELLOW}Starting primary AKS again to demonstrate failback...${RESET}"
 	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
-
+	
+	@echo -e "${BLUE}Waiting for primary cluster to be ready and traffic to rebalance...${RESET}"
+	@sleep 60
+	
 	@echo -e "${GREEN}✅ Demo 2 completed successfully${RESET}"
+	@echo -e "${BLUE}Traffic Manager is now distributing traffic based on weights${RESET}"
 
 # Demo 3: Primary AKS shutdown ==> takes way longer (~2min) to failover
 demo3:

@@ -77,7 +77,7 @@ END
 
   sleep 10 # waiting for ingress-nginx-controller-admission
 
-  # Install podinfo
+  # Install podinfo k8gb
   helm upgrade --install podinfo podinfo/podinfo \
     --namespace default \
     --version 6.9.1 \
@@ -87,7 +87,6 @@ END
     --set-string "ingress.additionalLabels.k8gb\.io/ip-source=true" \
     --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION" \
     -f $SCRIPT_DIR/../helm-values/podinfo/values.yaml
-
 
   # Install k8gb
   helm upgrade --install k8gb k8gb/k8gb \
@@ -160,6 +159,49 @@ spec:
   selector:
     app: maintenance
   type: ClusterIP
+END
+
+kubectl apply -f - <<END
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/name: podinfo-traffic-manager
+  name: podinfo-traffic-manager
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: $CLUSTER_NAME.traf.k8st.cc
+    http:
+      paths:
+      - backend:
+          service:
+            name: podinfo
+            port:
+              number: 9898
+        path: /
+        pathType: ImplementationSpecific
+  - host: traf-podinfo-demo-cd25.trafficmanager.net
+    http:
+      paths:
+      - backend:
+          service:
+            name: podinfo
+            port:
+              number: 9898
+        path: /
+        pathType: ImplementationSpecific
+  - host: traf-podinfo-demo-cd25.trafficmanager.net
+    http:
+      paths:
+      - backend:
+          service:
+            name: podinfo
+            port:
+              number: 9898
+        path: /
+        pathType: ImplementationSpecific
 END
 
   echo "k8gb demo setup complete on cluster $CLUSTER_NAME."
