@@ -70,7 +70,7 @@ curl -s https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_recor
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $CLOUDFLARE_API_KEY" \
     -d "{
-          \"name\": \"traf\",
+          \"name\": \"podinfo\",
           \"ttl\": 3600,
           \"type\": \"CNAME\",
           \"content\": \"traf-podinfo-demo-cd25.trafficmanager.net\",

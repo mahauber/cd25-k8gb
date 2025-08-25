@@ -32,7 +32,7 @@ init-demo-aks-tf:
 init-demo-aks-helm:
 	@echo "➡️   Setting up Helm for AKS"
 	$(SCRIPT_DIR)scripts/set-up-helm-charts.sh
-	@echo "✅   Finished Helm setup. Access the application at: http://podinfo.demo.cd25.k8st.cc"
+	@echo "✅   Finished Helm setup. Access the application at: http://podinfo.demo.cd25.k8st.cc and http://podinfo.k8st.cc"
 
 init-demo-aks-cloudflare:
 	@echo "➡️   Setting up Cloudflare DNS"

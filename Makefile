@@ -62,23 +62,20 @@ demo1:
 # Demo 2: Traffic manager weighted
 demo2:
 	@echo -e "${YELLOW}➡️   Demo 2: Traffic manager weighted${RESET}"
-	@echo -e "${BLUE}Monitoring Traffic Manager endpoint with weighted routing${RESET}"
-	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short traf-podinfo-demo-cd25.trafficmanager.net && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://traf-podinfo-demo-cd25.trafficmanager.net | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short podinfo.k8st.cc && echo "${YELLOW}DNS chain:${RESET}" && (curl -s http://podinfo.k8st.cc | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	@echo -e "${BLUE}Switching context to AKS...${RESET}"
+	@kubectx aks-gwc
 	
-	@echo -e "${YELLOW}Stopping primary AKS cluster to demonstrate failover...${RESET}"
-	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+	@echo -e "${YELLOW}Scaling down podinfo deployment to 0 replicas${RESET}"
+	@sleep 5
+	@kubectl scale deployment podinfo --replicas=0
 	
-	@echo -e "${BLUE}Traffic should now be routed to secondary cluster...${RESET}"
-	@sleep 30
+	@read -p "$(shell echo -e "${GREEN}Press enter to continue scaling up...${RESET}")"
 	
-	@echo -e "${YELLOW}Starting primary AKS again to demonstrate failback...${RESET}"
-	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+	@echo -e "${YELLOW}Scaling up podinfo deployment to 1 replica${RESET}"
+	@kubectl scale deployment podinfo --replicas=1
 	
-	@echo -e "${BLUE}Waiting for primary cluster to be ready and traffic to rebalance...${RESET}"
-	@sleep 60
-	
-	@echo -e "${GREEN}✅ Demo 2 completed successfully${RESET}"
-	@echo -e "${BLUE}Traffic Manager is now distributing traffic based on weights${RESET}"
+	@echo -e "${GREEN}✅ Demo 1 completed successfully${RESET}"
 
 # Demo 3: Primary AKS shutdown ==> takes way longer (~2min) to failover
 demo3:

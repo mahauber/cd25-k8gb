@@ -192,7 +192,7 @@ spec:
               number: 9898
         path: /
         pathType: ImplementationSpecific
-  - host: traf-podinfo-demo-cd25.trafficmanager.net
+  - host: podinfo.k8st.cc
     http:
       paths:
       - backend:
