@@ -6,7 +6,7 @@ variable "subscription_id" {
 variable "kubernetes_version" {
   description = "The version of Kubernetes to use for the AKS clusters"
   type        = string
-  default     = "1.33.1"
+  default     = "1.32.5"
 }
 
 variable "clusters" {
