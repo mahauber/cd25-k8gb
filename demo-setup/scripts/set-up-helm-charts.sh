@@ -18,6 +18,7 @@ if ! command -v kubectl &> /dev/null; then
 fi
 
 # Set variables
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 CLUSTERS=("aks-gwc" "aks-sdc")
 SUBSCRIPTION_ID="88155474-d55e-4910-9a6f-9ea5ccc6d281"
 TENANT_ID="$(az account show --query tenantId -o tsv)"
@@ -52,17 +53,9 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
     --version 4.13.0 \
     --create-namespace \
     --namespace ingress-nginx \
-    -f ./helm-values/ingress-nginx/values.yaml
+    -f $SCRIPT_DIR/../helm-values/ingress-nginx/values.yaml
 
-    kubectl apply -f - <<END
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    kubernetes.io/metadata.name: k8gb
-  name: k8gb
-spec:
-END
+    kubectl create ns k8gb --dry-run=client -o yaml | kubectl apply -f -
 
   # create secret for reference to managed identity to access public dns zone https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
   kubectl apply -f - <<END
@@ -93,18 +86,19 @@ END
     --set ui.message="$CLUSTER_NAME" \
     --set ingress.hosts[0].host="podinfo.$LOAD_BALANCED_ZONE" \
     --set-string "ingress.annotations.k8gb\.io/primary-geotag=$PRIMARY_GEO_TAG" \
+    --set-string "ingress.additionalLabels.k8gb\.io/ip-source=true" \
     --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION" \
-    -f ./helm-values/podinfo/values.yaml
+    -f $SCRIPT_DIR/../helm-values/podinfo/values.yaml
 
   helm upgrade --install k8gb k8gb/k8gb \
     --namespace k8gb \
     --create-namespace \
-    --version 0.14.0 \
+    --version 0.15.0 \
     --set "k8gb.clusterGeoTag=$CURRENT_CLUSTER_LOCATION" \
     --set "k8gb.extGslbClustersGeoTags=$CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS" \
-    --set "k8gb.dnsZone=$LOAD_BALANCED_ZONE" \
-    --set "k8gb.edgeDNSZone=$DNS_ZONE_NAME" \
-    -f ./helm-values/k8gb/values.yaml
+    --set "k8gb.dnsZones[0].loadBalancedZone=$LOAD_BALANCED_ZONE" \
+    --set "k8gb.dnsZones[0].parentZone=$DNS_ZONE_NAME" \
+    -f $SCRIPT_DIR/../helm-values/k8gb/values.yaml
 
     kubectl apply -f - <<END
 apiVersion: networking.k8s.io/v1
