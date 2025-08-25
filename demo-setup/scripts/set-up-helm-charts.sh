@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
 if ! command -v az &> /dev/null; then
   echo "Azure CLI (az) not found. Please install it before running this script."
   exit 1
@@ -17,17 +19,12 @@ if ! command -v kubectl &> /dev/null; then
   exit 1
 fi
 
-# Set variables
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-CLUSTERS=("aks-gwc" "aks-sdc")
-SUBSCRIPTION_ID="88155474-d55e-4910-9a6f-9ea5ccc6d281"
-TENANT_ID="$(az account show --query tenantId -o tsv)"
-DNS_ZONE_RESOURCE_GROUP="dns-zone"
-DNS_ZONE_NAME="cd25.k8st.cc"
-LOAD_BALANCED_ZONE="demo.cd25.k8st.cc"
-PRIMARY_GEO_TAG="germanywestcentral"
+if ! command -v kubelogin &> /dev/null; then
+  echo "kubelogin not found. Please install it before running this script."
+  exit 1
+fi
 
-# Add and update Helm repositories (only once)
+# Update Helm repositories
 helm repo add k8gb https://www.k8gb.io
 helm repo add podinfo https://stefanprodan.github.io/podinfo
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -42,12 +39,6 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
   az aks get-credentials --resource-group $CLUSTER_NAME --name $CLUSTER_NAME --subscription $SUBSCRIPTION_ID --overwrite-existing
   kubelogin convert-kubeconfig -l azurecli
 
-  CURRENT_CLUSTER_LOCATION=$(az aks show --resource-group $CLUSTER_NAME --name $CLUSTER_NAME --query location -o tsv)
-
-  CLEAN_ALL_CLUSTER_LOCATIONS=$(comm -23 <(az aks list --query "[].location" -o tsv | sort) <(echo $CURRENT_CLUSTER_LOCATION | sort))
-  CLEAN_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS=$(echo $CLEAN_ALL_CLUSTER_LOCATIONS | paste -sd,)
-  CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS="${CLEAN_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS//,/\\,}" # escape commas for Helm values
-
   # Install NGINX Ingress Controller
   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
     --version 4.13.0 \
@@ -55,7 +46,7 @@ for CLUSTER_NAME in "${CLUSTERS[@]}"; do
     --namespace ingress-nginx \
     -f $SCRIPT_DIR/../helm-values/ingress-nginx/values.yaml
 
-    kubectl create ns k8gb --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create ns k8gb --dry-run=client -o yaml | kubectl apply -f -
 
   # create secret for reference to managed identity to access public dns zone https://github.com/k8gb-io/external-dns/blob/master/docs/tutorials/azure.md
   kubectl apply -f - <<END
@@ -90,6 +81,16 @@ END
     --set ui.logo="https://dummyimage.com/600x400/fab41e/3C4146&text=$CURRENT_CLUSTER_LOCATION" \
     -f $SCRIPT_DIR/../helm-values/podinfo/values.yaml
 
+  # Getting the cluster geo tags
+  CLEAN_ESCAPED_COMMA_SEPARATED_ALL_CLUSTER_LOCATIONS=$(
+    comm -23 \
+      <(az aks list --query "[].location" -o tsv | sort) \
+      <(az aks show --resource-group "$CLUSTER_NAME" --name "$CLUSTER_NAME" --query location -o tsv | sort) \
+    | paste -sd, \
+    | sed 's/,/\\,/g'
+  )
+
+  # Install k8gb
   helm upgrade --install k8gb k8gb/k8gb \
     --namespace k8gb \
     --create-namespace \
@@ -100,11 +101,12 @@ END
     --set "k8gb.dnsZones[0].parentZone=$DNS_ZONE_NAME" \
     -f $SCRIPT_DIR/../helm-values/k8gb/values.yaml
 
-    kubectl apply -f - <<END
+  # Setup default page deployment
+  kubectl apply -f - <<END
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: defaul-page
+  name: default-page
 spec:
   ingressClassName: nginx
   defaultBackend:

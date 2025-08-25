@@ -8,6 +8,10 @@ SCRIPT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SHELL := /bin/bash
 DEMO_DIR := /mnt/f/Prodyna/Talks/cd25-k8gb
 
+PRIMARY_AKS_NAME := aks-gwc
+SECONDARY_AKS_NAME := aks-sdc
+SUBSCRIPTION_ID := 88155474-d55e-4910-9a6f-9ea5ccc6d281
+
 # Phony targets (targets that don't represent files)
 .PHONY: demo1 demo2 help clean
 
@@ -18,12 +22,17 @@ help:
 	@echo -e "  ${GREEN}demo2${RESET}   - Additional Kubernetes demo (customize as needed)"
 	@echo -e "  ${GREEN}help${RESET}    - Show this help message"
 
+start:
+	@echo -e "${BLUE}Starting clusters...${RESET}"
+	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+	@az aks start --name ${SECONDARY_AKS_NAME} --resource-group ${SECONDARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+
 k9s:
 	@echo -e "${BLUE}Starting k9s in Windows Terminal...${RESET}"
 	@cmd.exe /c start wt -w 0 nt --tabColor "#48c8ffff" --title "Swedencentral" wsl -e k9s --context "aks-sdc" -c "pods" --logoless -A
 	@cmd.exe /c start wt -w 0 nt --tabColor "#0003c0ff" --title "Germanywestcentral" wsl -e k9s --context "aks-gwc" -c "pods" --logoless -A
 
-# Demo 1: Kubernetes Service Scaling
+# Demo 1: Kubernetes Service Scaling ==> failover fast due to communication between k8gb cluster instances
 demo1:
 	@echo -e "${YELLOW}➡️   Demo 1: Kubernetes SVC without endpoints${RESET}"
 	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short podinfo.demo.cd25.k8st.cc && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://podinfo.demo.cd25.k8st.cc | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
@@ -41,16 +50,22 @@ demo1:
 	
 	@echo -e "${GREEN}✅ Demo 1 completed successfully${RESET}"
 
-# Demo 2 (example - customize as needed)
+# Demo 2 Primary AKS shutdown ==> takes way longer (~2min) to failover
 demo2:
-	@echo -e "${YELLOW}➡️   Demo 2: Additional Kubernetes Demonstration${RESET}"
-	@# Add your specific commands here
-	@echo -e "${GREEN}✅ Demo 2 completed${RESET}"
+	@echo -e "${YELLOW}➡️   Demo 2: Primary AKS shutdown${RESET}"
+	@echo -e "${BLUE}Shutting down primary AKS...${RESET}"
+	@cmd.exe /c start wsl.exe -- watch -t -n 1 -w -d 'echo "${GREEN}Current IP-address:${RESET}" && dig +short podinfo.demo.cd25.k8st.cc && echo "${YELLOW}Current cluster:${RESET}" && (curl -s http://podinfo.demo.cd25.k8st.cc | jq -r ".message" 2>/dev/null || echo "${RED}cluster down${RESET}")'
+	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
 
-# Clean up target (example)
-clean:
-	@echo -e "${BLUE}Cleaning up...${RESET}"
-	@# Add any cleanup commands here
+	@echo -e "${YELLOW}Starting primary AKS again...${RESET}"
+	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+
+	@echo -e "${GREEN}✅ Demo 2 completed successfully${RESET}"
+
+stop:
+	@echo -e "${BLUE}Stopping clusters...${RESET}"
+	@az aks stop --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+	@az aks stop --name ${SECONDARY_AKS_NAME} --resource-group ${SECONDARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
 
 # Default target
 default: help
