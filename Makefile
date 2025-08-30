@@ -9,7 +9,7 @@ SHELL := /bin/bash
 DEMO_DIR := /mnt/f/Prodyna/Talks/cd25-k8gb
 
 PRIMARY_AKS_NAME := aks-gwc
-SECONDARY_AKS_NAME := aks-sdc
+SECONDARY_AKS_NAME := aks-acl
 SUBSCRIPTION_ID := 88155474-d55e-4910-9a6f-9ea5ccc6d281
 
 # Phony targets (targets that don't represent files)
@@ -33,12 +33,12 @@ initial-setup:
 
 start:
 	@echo -e "${BLUE}Starting clusters...${RESET}"
-	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
-	@az aks start --name ${SECONDARY_AKS_NAME} --resource-group ${SECONDARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID}
+	@az aks start --name ${PRIMARY_AKS_NAME} --resource-group ${PRIMARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID} | true
+	@az aks start --name ${SECONDARY_AKS_NAME} --resource-group ${SECONDARY_AKS_NAME} --subscription ${SUBSCRIPTION_ID} | true
 
 k9s:
 	@echo -e "${BLUE}Starting k9s in Windows Terminal...${RESET}"
-	@cmd.exe /c start wt -w 0 nt --tabColor "#48c8ffff" --title "Swedencentral" wsl -e k9s --context "aks-sdc" -c "pods" --logoless -A
+	@cmd.exe /c start wt -w 0 nt --tabColor "#48c8ffff" --title "Australiacentral" wsl -e k9s --context "aks-acl" -c "pods" --logoless -A
 	@cmd.exe /c start wt -w 0 nt --tabColor "#0003c0ff" --title "Germanywestcentral" wsl -e k9s --context "aks-gwc" -c "pods" --logoless -A
 
 # Demo 1: Kubernetes Service Scaling ==> failover fast due to communication between k8gb cluster instances

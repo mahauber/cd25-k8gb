@@ -22,8 +22,8 @@ done
 # Get IP addresses from ingress-nginx services
 kubectx aks-gwc
 GWC_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-kubectx aks-sdc
-SDC_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+kubectx aks-acl
+ACL_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Check if IPs were retrieved successfully
 if [ -z "$GWC_IP" ]; then
@@ -31,13 +31,13 @@ if [ -z "$GWC_IP" ]; then
     exit 1
 fi
 
-if [ -z "$SDC_IP" ]; then
-    echo "Error: Could not retrieve IP for SDC ingress controller"
+if [ -z "$ACL_IP" ]; then
+    echo "Error: Could not retrieve IP for ACL ingress controller"
     exit 1
 fi
 
 echo "GWC IP: $GWC_IP"
-echo "SDC IP: $SDC_IP"
+echo "ACL IP: $ACL_IP"
 
 # Setup AKS A records
 echo "Creating A record for aks-gwc.traf..."
@@ -53,15 +53,15 @@ curl -s https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_recor
         }" | jq '.'
 
 echo ""
-echo "Creating A record for aks-sdc.traf..."
+echo "Creating A record for aks-acl.traf..."
 curl -s https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records \
     -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $CLOUDFLARE_API_KEY" \
     -d "{
-          \"name\": \"aks-sdc.traf\",
+          \"name\": \"aks-acl.traf\",
           \"ttl\": 3600,
           \"type\": \"A\",
-          \"content\": \"$SDC_IP\",
+          \"content\": \"$ACL_IP\",
           \"proxied\": false
         }" | jq '.'
 

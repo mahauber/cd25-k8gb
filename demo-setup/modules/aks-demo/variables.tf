@@ -21,8 +21,8 @@ variable "clusters" {
       location = "germanywestcentral"
     },
     {
-      name     = "aks-sdc"
-      location = "swedencentral"
+      name     = "aks-acl"
+      location = "australiacentral"
     }
   ]
 }

@@ -8,7 +8,7 @@ export LOAD_BALANCED_ZONE := demo.cd25.k8st.cc
 export PRIMARY_GEO_TAG := germanywestcentral
 export TF_VAR_subscription_id := 88155474-d55e-4910-9a6f-9ea5ccc6d281
 export TENANT_ID := 60fb1cfc-a9ef-4a93-b5e8-5d021bd6f296 # az account show --query tenantId -o tsv
-export CLUSTERS := aks-gwc aks-sdc
+export CLUSTERS := aks-gwc aks-acl
 
 # export CLOUDFLARE_API_KEY := your_api_key
 export CLOUDFLARE_ZONE_ID := bb6f8fe1622eef68d50a90eede65dffc
