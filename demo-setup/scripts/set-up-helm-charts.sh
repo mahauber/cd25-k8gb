@@ -30,6 +30,8 @@ helm repo add podinfo https://stefanprodan.github.io/podinfo
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 
+az account set --subscription $TF_VAR_subscription_id
+
 for CLUSTER_NAME in $CLUSTERS; do
   echo "#################################"
   echo "## Setting up cluster: $CLUSTER_NAME ##"
