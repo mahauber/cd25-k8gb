@@ -6,7 +6,7 @@ export TF_VAR_dns_zone_name := cd25.k8st.cc
 export LOAD_BALANCED_ZONE := demo.cd25.k8st.cc
 
 export PRIMARY_GEO_TAG := germanywestcentral
-export TF_VAR_subscription_id := 88155474-d55e-4910-9a6f-9ea5ccc6d281
+export TF_VAR_subscription_id := 2487370b-29f7-4477-a500-2206e30867af
 export TENANT_ID := 60fb1cfc-a9ef-4a93-b5e8-5d021bd6f296 # az account show --query tenantId -o tsv
 export CLUSTERS := aks-gwc aks-acl
 

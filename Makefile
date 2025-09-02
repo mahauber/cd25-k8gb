@@ -10,7 +10,7 @@ DEMO_DIR := /mnt/f/Prodyna/Talks/cd25-k8gb
 
 PRIMARY_AKS_NAME := aks-gwc
 SECONDARY_AKS_NAME := aks-acl
-SUBSCRIPTION_ID := 88155474-d55e-4910-9a6f-9ea5ccc6d281
+SUBSCRIPTION_ID := 2487370b-29f7-4477-a500-2206e30867af
 
 # Phony targets (targets that don't represent files)
 .PHONY: demo1 demo2 help clean
